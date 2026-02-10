@@ -1,0 +1,100 @@
+{
+  "token": "",
+  "guild_id": 1246465185368248391,
+  "intents": {
+    "guilds": true,
+    "members": true,
+    "messages": true,
+    "message_content": true
+  },
+  "logging": {
+    "level": "INFO",
+    "console": true,
+    "file_enabled": true,
+    "file_path": "logs/bot.log",
+    "max_bytes": 5242880,
+    "backup_count": 5
+  },
+  "bot": {
+    "activity_type": "playing",
+    "status_text": "Looking into KaiZen"
+  },
+  "cogs": [
+    "cogs.leveling",
+    "cogs.linkfilter",
+    "cogs.giveaway"
+  ],
+  "leveling": {
+    "enabled": true,
+    "guild_only": true,
+    "storage_path": "data/leveling.json",
+    "xp_per_message": 1,
+    "excluded_channel_ids": [
+      1295042485029965824,
+      1313143135676665877,
+      1246469223434158140,
+      1246489609949417646
+    ],
+    "remove_old_level_roles": true,
+    "announce": {
+      "enabled": true,
+      "channel_id": 1470828225453097155,
+      "message": "%usermetion% you reached a new rank! You are now have the Rank %newrole%"
+    },
+    "leaderboard": {
+      "size": 10
+    },
+    "admin": {
+      "role_ids": [],
+      "require_administrator": true,
+      "require_manage_guild": false
+    },
+    "spam_protection": {
+      "cooldown_seconds": 10,
+      "block_same_message": true,
+      "same_message_window_seconds": 120
+    },
+    "levels": [
+      { "Level": 1, "XP_Needed": 0, "Role": 1246472665536135179, "active": true },
+      { "Level": 2, "XP_Needed": 150, "Role": 1470843480870883530, "active": true },
+      { "Level": 3, "XP_Needed": 500, "Role": 1246472875112661012, "active": true },
+      { "Level": 4, "XP_Needed": 1500, "Role": 1246532872282837013, "active": true },
+      { "Level": 5, "XP_Needed": 4000, "Role": 1470846616775954595, "active": true },
+      { "Level": 6, "XP_Needed": 10000, "Role": 1470787994351833159, "active": true }
+    ]
+  },
+  "link_filter": {
+    "enabled": true,
+    "guild_only": true,
+    "bypass_role_ids": [
+      1246466743417704520,
+      1246572470228750437,
+      1470853212964913173
+    ],
+    "excluded_channel_ids": [],
+    "allowed_domains": [
+      "tenor.com"
+    ],
+    "action": {
+      "delete_message": true,
+      "warn_in_channel": true,
+      "warn_delete_after_seconds": 6,
+      "warn_message": "{user} links are not allowed here."
+    }
+  },
+  "giveaway": {
+    "enabled": true,
+    "guild_only": true,
+    "storage_path": "data/giveaways.json",
+    "tick_seconds": 10,
+    "default_winners": 1,
+    "max_winners": 20,
+    "max_prize_length": 120,
+    "button_label": "Join Giveaway",
+    "start_permissions": {
+      "role_ids": [],
+      "require_administrator": true,
+      "require_manage_guild": false
+    }
+  }
+}
