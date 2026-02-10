@@ -6,3 +6,4 @@ Discord Bot für ABI Discord mit Englischen Texten
 
 - Level System 
 - Anti Link mit Bypass 
+- Giveaways
