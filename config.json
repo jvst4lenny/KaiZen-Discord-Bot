@@ -52,8 +52,8 @@
       "size": 10
     },
     "admin": {
-      "role_ids": [],
-      "require_administrator": true,
+      "role_ids": [1246572470228750437, 1246466743417704520],
+      "require_administrator": false,
       "require_manage_guild": false
     },
     "spam_protection": {
@@ -100,8 +100,8 @@
     "max_prize_length": 120,
     "button_label": "Join Giveaway",
     "start_permissions": {
-      "role_ids": [],
-      "require_administrator": true,
+      "role_ids": [1246572470228750437, 1246466743417704520],
+      "require_administrator": false,
       "require_manage_guild": false
     },
     "join_requirements": {
@@ -210,8 +210,8 @@
       "select": false
     },
     "start_permissions": {
-      "role_ids": [],
-      "require_administrator": true,
+      "role_ids": [1246572470228750437, 1246466743417704520],
+      "require_administrator": false,
       "require_manage_guild": false
     }
   }
