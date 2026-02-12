@@ -1,3 +1,4 @@
+import time
 import discord
 from discord.ext import commands
 
@@ -15,6 +16,8 @@ def build_intents(cfg: dict) -> discord.Intents:
         intents.messages = True
     if cfg.get("message_content", False):
         intents.message_content = True
+    if cfg.get("voice_states", False):
+        intents.voice_states = True
     intents.guild_reactions = True
     return intents
 
@@ -37,6 +40,7 @@ class MyBot(commands.Bot):
     def __init__(self, cfg: Config, logger):
         self.cfg = cfg
         self.log = logger
+        self.start_ts = time.time()
         intents = build_intents(cfg.section("intents"))
         super().__init__(command_prefix="!", intents=intents, help_command=None)
 

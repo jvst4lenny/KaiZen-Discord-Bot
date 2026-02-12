@@ -108,7 +108,7 @@ def _require_manage_guild(bot) -> bool:
     return _to_bool(_perm_cfg(bot).get("require_manage_guild", False), False)
 
 
-def _is_allowed(bot, member: discord.Member) -> bool:
+def _is_allowed_to_start(bot, member: discord.Member) -> bool:
     role_ids = _admin_role_ids(bot)
     if role_ids and any(r.id in role_ids for r in member.roles):
         return True
@@ -117,6 +117,72 @@ def _is_allowed(bot, member: discord.Member) -> bool:
     if _require_manage_guild(bot) and member.guild_permissions.manage_guild:
         return True
     return False
+
+
+def _join_req_cfg(bot) -> dict:
+    v = _cfg(bot).get("join_requirements", {})
+    return v if isinstance(v, dict) else {}
+
+
+def _req_roles(bot) -> set[int]:
+    v = _join_req_cfg(bot).get("required_role_ids", [])
+    if not isinstance(v, list):
+        return set()
+    out = set()
+    for x in v:
+        i = _to_int(x, 0)
+        if i > 0:
+            out.add(i)
+    return out
+
+
+def _blacklist_roles(bot) -> set[int]:
+    v = _join_req_cfg(bot).get("blacklist_role_ids", [])
+    if not isinstance(v, list):
+        return set()
+    out = set()
+    for x in v:
+        i = _to_int(x, 0)
+        if i > 0:
+            out.add(i)
+    return out
+
+
+def _block_missing_required(bot) -> bool:
+    return _to_bool(_join_req_cfg(bot).get("block_if_missing_required_roles", True), True)
+
+
+def _block_blacklist(bot) -> bool:
+    return _to_bool(_join_req_cfg(bot).get("block_if_has_blacklist_role", True), True)
+
+
+def _join_error(bot) -> str:
+    s = _join_req_cfg(bot).get("ephemeral_error_message", "You are not allowed to join this giveaway.")
+    return str(s) if s is not None else "You are not allowed to join this giveaway."
+
+
+def _reroll_cfg(bot) -> dict:
+    v = _cfg(bot).get("reroll", {})
+    return v if isinstance(v, dict) else {}
+
+
+def _reroll_exclude_prev(bot) -> bool:
+    return _to_bool(_reroll_cfg(bot).get("exclude_previous_winners", True), True)
+
+
+def _can_join(bot, member: discord.Member) -> bool:
+    req = _req_roles(bot)
+    blk = _blacklist_roles(bot)
+
+    if _block_blacklist(bot) and blk:
+        if any(r.id in blk for r in member.roles):
+            return False
+
+    if _block_missing_required(bot) and req:
+        if not any(r.id in req for r in member.roles):
+            return False
+
+    return True
 
 
 def _make_embed(prize: str, winners: int, host_id: int, end_ts: int, entries: int, ended: bool, winner_ids: list[int] | None) -> discord.Embed:
@@ -207,6 +273,7 @@ async def _end_giveaway(bot: discord.Client, giveaway_id: str, force: bool = Fal
     entries = gw.get("entries", [])
     if not isinstance(entries, list):
         entries = []
+
     winner_ids = _pick_winners([_to_int(x, 0) for x in entries], winners)
 
     gw["ended"] = True
@@ -230,6 +297,13 @@ async def handle_join(interaction: discord.Interaction, giveaway_id: str):
         return
     if interaction.guild is None:
         await interaction.response.send_message("This is only available in a server.", ephemeral=True)
+        return
+    if not isinstance(interaction.user, discord.Member):
+        await interaction.response.send_message("This is only available in a server.", ephemeral=True)
+        return
+
+    if not _can_join(bot, interaction.user):
+        await interaction.response.send_message(_join_error(bot), ephemeral=True)
         return
 
     storage: JsonStorage = bot._giveaway_storage
@@ -312,7 +386,7 @@ async def giveaway_start(interaction: discord.Interaction, duration: str, prize:
     if interaction.guild is None or not isinstance(interaction.user, discord.Member):
         await interaction.response.send_message("This command is only available in a server.", ephemeral=True)
         return
-    if not _is_allowed(bot, interaction.user):
+    if not _is_allowed_to_start(bot, interaction.user):
         await interaction.response.send_message("You do not have permission to use this command.", ephemeral=True)
         return
 
@@ -374,7 +448,7 @@ async def giveaway_end(interaction: discord.Interaction, message_id: str):
     if interaction.guild is None or not isinstance(interaction.user, discord.Member):
         await interaction.response.send_message("This command is only available in a server.", ephemeral=True)
         return
-    if not _is_allowed(bot, interaction.user):
+    if not _is_allowed_to_start(bot, interaction.user):
         await interaction.response.send_message("You do not have permission to use this command.", ephemeral=True)
         return
 
@@ -403,7 +477,7 @@ async def giveaway_reroll(interaction: discord.Interaction, message_id: str, win
     if interaction.guild is None or not isinstance(interaction.user, discord.Member):
         await interaction.response.send_message("This command is only available in a server.", ephemeral=True)
         return
-    if not _is_allowed(bot, interaction.user):
+    if not _is_allowed_to_start(bot, interaction.user):
         await interaction.response.send_message("You do not have permission to use this command.", ephemeral=True)
         return
 
@@ -425,10 +499,22 @@ async def giveaway_reroll(interaction: discord.Interaction, message_id: str, win
     if not isinstance(entries, list):
         entries = []
 
+    prev = gw.get("winner_ids", [])
+    prev_set = set([_to_int(x, 0) for x in prev]) if isinstance(prev, list) else set()
+
+    filtered = []
+    for x in entries:
+        uid = _to_int(x, 0)
+        if uid <= 0:
+            continue
+        if _reroll_exclude_prev(bot) and uid in prev_set:
+            continue
+        filtered.append(uid)
+
     w = winners if winners is not None else _to_int(gw.get("winners", _default_winners(bot)), _default_winners(bot))
     w = max(1, min(_max_winners(bot), int(w)))
 
-    winner_ids = _pick_winners([_to_int(x, 0) for x in entries], w)
+    winner_ids = _pick_winners(filtered, w)
     gw["winner_ids"] = winner_ids
     await storage.set(gid, gw)
 
@@ -436,8 +522,7 @@ async def giveaway_reroll(interaction: discord.Interaction, message_id: str, win
 
 
 async def setup(bot: discord.Client):
-    cfg = _cfg(bot)
-    path = str(cfg.get("storage_path", "data/giveaways.json"))
+    path = str(_cfg(bot).get("storage_path", "data/giveaways.json"))
     bot._giveaway_storage = JsonStorage(path, log=getattr(bot, "log", None))
 
     guild_id = int(getattr(bot, "cfg", {}).get("guild_id", 0) or 0)

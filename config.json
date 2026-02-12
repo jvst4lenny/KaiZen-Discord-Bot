@@ -5,7 +5,8 @@
     "guilds": true,
     "members": true,
     "messages": true,
-    "message_content": true
+    "message_content": true,
+    "voice_states": true
   },
   "logging": {
     "level": "INFO",
@@ -22,7 +23,13 @@
   "cogs": [
     "cogs.leveling",
     "cogs.linkfilter",
-    "cogs.giveaway"
+    "cogs.giveaway",
+    "cogs.qol",
+    "cogs.userinfo",
+    "cogs.nicknamefilter",
+    "cogs.joinleave",
+    "cogs.tempchannels",
+    "cogs.reactionroles"
   ],
   "leveling": {
     "enabled": true,
@@ -73,7 +80,8 @@
     ],
     "excluded_channel_ids": [],
     "allowed_domains": [
-      "tenor.com"
+      "tenor.com",
+      "cdn.discordapp.com"
     ],
     "action": {
       "delete_message": true,
@@ -91,6 +99,116 @@
     "max_winners": 20,
     "max_prize_length": 120,
     "button_label": "Join Giveaway",
+    "start_permissions": {
+      "role_ids": [],
+      "require_administrator": true,
+      "require_manage_guild": false
+    },
+    "join_requirements": {
+      "required_role_ids": [],
+      "blacklist_role_ids": [],
+      "block_if_missing_required_roles": true,
+      "block_if_has_blacklist_role": true,
+      "ephemeral_error_message": "You are not allowed to join this giveaway."
+    },
+    "reroll": {
+      "exclude_previous_winners": true
+    }
+  },
+  "qol": {
+    "enabled": true,
+    "guild_only": true,
+    "send_embed": {
+      "enabled": true,
+      "default_color": "#2B2D31",
+      "footer_prefix": ""
+    },
+    "send_message": {
+      "enabled": true
+    },
+    "edit_embed": {
+      "enabled": true
+    },
+    "edit_message": {
+      "enabled": true
+    }
+  },
+  "userinfo": {
+    "enabled": true,
+    "guild_only": true,
+    "show_roles": true,
+    "max_roles": 15
+  },
+  "nickname_filter": {
+    "enabled": true,
+    "guild_only": true,
+    "exempt_role_ids": [],
+    "require_administrator_exempt": true,
+    "disallowed_words": [],
+    "disallowed_regex": [],
+    "min_length": 2,
+    "max_length": 32,
+    "action": {
+      "reset_nickname": true,
+      "dm_user": false,
+      "dm_message": "Your nickname was removed because it violated the server rules."
+    }
+  },
+  "join_leave": {
+    "enabled": true,
+    "guild_only": true,
+    "auto_role_id": 0,
+    "welcome": {
+      "enabled": true,
+      "channel_id": 0,
+      "title": "Welcome!",
+      "description": "Welcome {user} to **{server}**!",
+      "footer": "Member #{member_count}"
+    },
+    "goodbye": {
+      "enabled": false,
+      "channel_id": 0,
+      "title": "Goodbye!",
+      "description": "{user} left **{server}**.",
+      "footer": "Member #{member_count}"
+    },
+    "dm": {
+      "enabled": false,
+      "message": "Welcome to {server}, {user}!"
+    }
+  },
+  "temp_channels": {
+    "enabled": true,
+    "guild_only": true,
+    "hub_channel_ids": [],
+    "category_id": 0,
+    "name_template": "{user}'s channel",
+    "user_limit_default": 0,
+    "lock_by_default": false,
+    "delete_delay_seconds": 3,
+    "owner_overwrites": {
+      "manage_channels": true,
+      "move_members": true,
+      "mute_members": true,
+      "deafen_members": true
+    },
+    "bypass_role_ids": []
+  },
+  "reaction_roles": {
+    "enabled": true,
+    "guild_only": true,
+    "storage_path": "data/reaction_roles.json",
+    "max_buttons": 25,
+    "max_select_options": 25,
+    "select_max_values": 1,
+    "remove_unselected_on_select": true,
+    "exclusive_groups": {
+      "enabled": true
+    },
+    "default_panel_toggle_mode": {
+      "buttons": true,
+      "select": false
+    },
     "start_permissions": {
       "role_ids": [],
       "require_administrator": true,

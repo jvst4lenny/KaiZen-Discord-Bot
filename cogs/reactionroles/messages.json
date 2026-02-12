@@ -1,0 +1,28 @@
+{
+  "embeds": {
+    "default_title": "Reaction Roles",
+    "default_description": ""
+  },
+  "responses": {
+    "server_only": "This command can only be used in a server.",
+    "no_permission": "You do not have permission to use this command.",
+    "creating_panel": "Creating panel...",
+    "panel_created": "Panel created. ID: `{panel_id}`",
+    "invalid_panel_id": "Invalid panel ID.",
+    "panel_not_found": "Panel not found.",
+    "panel_deleted": "Deleted.",
+    "panel_full": "Panel is full.",
+    "role_already_in_panel": "That role is already in the panel.",
+    "role_not_in_panel": "That role is not in the panel.",
+    "added_updating": "Added. Updating panel...",
+    "removed_updating": "Removed. Updating panel...",
+    "panel_missing": "This panel no longer exists.",
+    "role_not_found": "Role not found.",
+    "role_added": "Role added.",
+    "role_removed": "Role removed.",
+    "cant_add_role": "I can't add that role.",
+    "cant_remove_role": "I can't remove that role.",
+    "updated": "Updated.",
+    "no_changes": "No changes."
+  }
+}
