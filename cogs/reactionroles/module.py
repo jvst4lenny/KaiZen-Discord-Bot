@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import discord
 from discord import app_commands
 from typing import Any
@@ -42,15 +43,6 @@ def _msg(bot, key: str, default: str) -> str:
         v = root.get(key, default)
         return str(v) if v is not None else default
     return default
-
-
-def _embed_default(bot) -> tuple[str, str]:
-    root = _msg_cfg(bot).get("embeds", {})
-    if not isinstance(root, dict):
-        return "Reaction Roles", ""
-    t = root.get("default_title", "Reaction Roles")
-    d = root.get("default_description", "")
-    return str(t) if t is not None else "Reaction Roles", str(d) if d is not None else ""
 
 
 def _enabled(bot) -> bool:
@@ -129,10 +121,6 @@ def _is_allowed(bot, member: discord.Member) -> bool:
     return False
 
 
-def _panel_embed(title: str, description: str) -> discord.Embed:
-    return discord.Embed(title=title or "Reaction Roles", description=description or "")
-
-
 def _style_from_str(s: str) -> discord.ButtonStyle:
     x = (s or "").strip().lower()
     if x == "primary":
@@ -153,6 +141,21 @@ def _mode_from_str(s: str) -> str:
     if x in ("remove", "remove_only"):
         return "remove"
     return "toggle"
+
+
+def _parse_color_raw(color_raw: str | None) -> discord.Color | None:
+    s = str(color_raw or "").strip()
+    if not s:
+        return None
+    m = re.fullmatch(r"#?([0-9a-fA-F]{6})", s)
+    if m:
+        return discord.Color(int(m.group(1), 16))
+    try:
+        v = int(s)
+        v = max(0, min(0xFFFFFF, v))
+        return discord.Color(v)
+    except Exception:
+        return None
 
 
 async def _safe_add_role(member: discord.Member, role: discord.Role) -> bool:
@@ -296,14 +299,14 @@ async def handle_button(interaction: discord.Interaction, panel_id: str, role_id
     mode = _mode_from_str(str((it or {}).get("mode", "toggle")))
     group = _group_of_item(it)
 
-    changed = False
-
     if mode == "add":
         if role not in member.roles:
-            changed = await _remove_other_group_roles(bot, interaction.guild, member, panel, group, role_id) or changed
+            await _remove_other_group_roles(bot, interaction.guild, member, panel, group, role_id)
             ok = await _safe_add_role(member, role)
-            changed = changed or ok
-            await interaction.response.send_message(_msg(bot, "role_added", "Role added.") if ok else _msg(bot, "cant_add_role", "I can't add that role."), ephemeral=True)
+            if ok:
+                await interaction.response.send_message(_msg(bot, "role_added", "Role added: {role}").replace("{role}", role.name), ephemeral=True)
+            else:
+                await interaction.response.send_message(_msg(bot, "cant_add_role", "I can't add that role."), ephemeral=True)
         else:
             await interaction.response.send_message(_msg(bot, "no_changes", "No changes."), ephemeral=True)
         return
@@ -311,21 +314,27 @@ async def handle_button(interaction: discord.Interaction, panel_id: str, role_id
     if mode == "remove":
         if role in member.roles:
             ok = await _safe_remove_role(member, role)
-            changed = changed or ok
-            await interaction.response.send_message(_msg(bot, "role_removed", "Role removed.") if ok else _msg(bot, "cant_remove_role", "I can't remove that role."), ephemeral=True)
+            if ok:
+                await interaction.response.send_message(_msg(bot, "role_removed", "Role removed: {role}").replace("{role}", role.name), ephemeral=True)
+            else:
+                await interaction.response.send_message(_msg(bot, "cant_remove_role", "I can't remove that role."), ephemeral=True)
         else:
             await interaction.response.send_message(_msg(bot, "no_changes", "No changes."), ephemeral=True)
         return
 
     if role in member.roles:
         ok = await _safe_remove_role(member, role)
-        changed = changed or ok
-        await interaction.response.send_message(_msg(bot, "role_removed", "Role removed.") if ok else _msg(bot, "cant_remove_role", "I can't remove that role."), ephemeral=True)
+        if ok:
+            await interaction.response.send_message(_msg(bot, "role_removed", "Role removed: {role}").replace("{role}", role.name), ephemeral=True)
+        else:
+            await interaction.response.send_message(_msg(bot, "cant_remove_role", "I can't remove that role."), ephemeral=True)
     else:
-        changed = await _remove_other_group_roles(bot, interaction.guild, member, panel, group, role_id) or changed
+        await _remove_other_group_roles(bot, interaction.guild, member, panel, group, role_id)
         ok = await _safe_add_role(member, role)
-        changed = changed or ok
-        await interaction.response.send_message(_msg(bot, "role_added", "Role added.") if ok else _msg(bot, "cant_add_role", "I can't add that role."), ephemeral=True)
+        if ok:
+            await interaction.response.send_message(_msg(bot, "role_added", "Role added: {role}").replace("{role}", role.name), ephemeral=True)
+        else:
+            await interaction.response.send_message(_msg(bot, "cant_add_role", "I can't add that role."), ephemeral=True)
 
 
 async def handle_select(interaction: discord.Interaction, panel_id: str, values: list[str]):
@@ -462,6 +471,8 @@ async def _render_panel(bot: discord.Client, panel_id: str):
     if not isinstance(items, list):
         items = []
     placeholder = str(panel.get("placeholder", "Select roles"))
+    color_raw = str(panel.get("color", "") or "").strip()
+    c = _parse_color_raw(color_raw)
 
     guild = bot.get_guild(guild_id)
     if guild is None:
@@ -478,7 +489,7 @@ async def _render_panel(bot: discord.Client, panel_id: str):
     if msg is None:
         return
 
-    embed = _panel_embed(title, desc)
+    embed = discord.Embed(title=title or "Reaction Roles", description=desc or "", color=c)
     if ptype == "buttons":
         view = RRButtonsView(bot, panel_id, items)
     else:
@@ -493,8 +504,8 @@ rr = app_commands.Group(name="rr", description="Reaction roles manager.")
 
 
 @rr.command(name="create_buttons", description="Create a reaction role panel with buttons.")
-@app_commands.describe(channel="Channel to post in", title="Embed title", description="Embed description", toggle_mode="If true: clicking again removes the role")
-async def rr_create_buttons(interaction: discord.Interaction, channel: discord.TextChannel, title: str = "Reaction Roles", description: str = "", toggle_mode: bool | None = None):
+@app_commands.describe(channel="Channel to post in", title="Embed title", description="Embed description", toggle_mode="If true: clicking again removes the role", color="Embed color (#RRGGBB or int)")
+async def rr_create_buttons(interaction: discord.Interaction, channel: discord.TextChannel, title: str = "Reaction Roles", description: str = "", toggle_mode: bool | None = None, color: str | None = None):
     bot = interaction.client
     if not _enabled(bot):
         return
@@ -509,8 +520,9 @@ async def rr_create_buttons(interaction: discord.Interaction, channel: discord.T
         return
 
     tm = _default_toggle_mode(bot, "buttons") if toggle_mode is None else bool(toggle_mode)
+    c = _parse_color_raw(color)
 
-    embed = _panel_embed(title, description)
+    embed = discord.Embed(title=title or "Reaction Roles", description=description or "", color=c)
     await interaction.response.send_message(_msg(bot, "creating_panel", "Creating panel..."), ephemeral=True)
     msg = await channel.send(embed=embed)
 
@@ -523,6 +535,7 @@ async def rr_create_buttons(interaction: discord.Interaction, channel: discord.T
         "toggle_mode": tm,
         "title": title,
         "description": description,
+        "color": str(color or ""),
         "items": []
     }
 
@@ -536,8 +549,8 @@ async def rr_create_buttons(interaction: discord.Interaction, channel: discord.T
 
 
 @rr.command(name="create_select", description="Create a reaction role panel with a dropdown.")
-@app_commands.describe(channel="Channel to post in", title="Embed title", description="Embed description", placeholder="Dropdown placeholder", toggle_mode="If true: selecting a role you already have removes it")
-async def rr_create_select(interaction: discord.Interaction, channel: discord.TextChannel, title: str = "Reaction Roles", description: str = "", placeholder: str = "Select roles", toggle_mode: bool | None = None):
+@app_commands.describe(channel="Channel to post in", title="Embed title", description="Embed description", placeholder="Dropdown placeholder", toggle_mode="If true: selecting a role you already have removes it", color="Embed color (#RRGGBB or int)")
+async def rr_create_select(interaction: discord.Interaction, channel: discord.TextChannel, title: str = "Reaction Roles", description: str = "", placeholder: str = "Select roles", toggle_mode: bool | None = None, color: str | None = None):
     bot = interaction.client
     if not _enabled(bot):
         return
@@ -552,8 +565,9 @@ async def rr_create_select(interaction: discord.Interaction, channel: discord.Te
         return
 
     tm = _default_toggle_mode(bot, "select") if toggle_mode is None else bool(toggle_mode)
+    c = _parse_color_raw(color)
 
-    embed = _panel_embed(title, description)
+    embed = discord.Embed(title=title or "Reaction Roles", description=description or "", color=c)
     await interaction.response.send_message(_msg(bot, "creating_panel", "Creating panel..."), ephemeral=True)
     msg = await channel.send(embed=embed)
 
@@ -567,6 +581,7 @@ async def rr_create_select(interaction: discord.Interaction, channel: discord.Te
         "placeholder": placeholder[:100],
         "title": title,
         "description": description,
+        "color": str(color or ""),
         "items": []
     }
 

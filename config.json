@@ -46,7 +46,7 @@
     "announce": {
       "enabled": true,
       "channel_id": 1470828225453097155,
-      "message": "%usermetion% you reached a new rank! You are now have the Rank %newrole%"
+      "message": "%usermetion% you reached a new rank!"
     },
     "leaderboard": {
       "size": 10

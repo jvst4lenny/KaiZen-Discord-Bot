@@ -18,11 +18,12 @@
     "removed_updating": "Removed. Updating panel...",
     "panel_missing": "This panel no longer exists.",
     "role_not_found": "Role not found.",
-    "role_added": "Role added.",
-    "role_removed": "Role removed.",
+    "role_added": "Role added: {role}",
+    "role_removed": "Role removed: {role}",
     "cant_add_role": "I can't add that role.",
     "cant_remove_role": "I can't remove that role.",
     "updated": "Updated.",
     "no_changes": "No changes."
   }
 }
+v
